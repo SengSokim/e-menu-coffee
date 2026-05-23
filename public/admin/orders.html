@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="coffee">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Orders — Coffee E-Menu Admin</title>
+  <meta name="description" content="View and export orders from Coffee E-Menu ordering sessions." />
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    h1,h2,h3 { font-family: 'Playfair Display', serif; }
+    [x-cloak] { display: none !important; }
+  </style>
+</head>
+<body class="bg-base-200 min-h-screen" x-data="ordersApp()" x-init="init()">
+
+  <!-- Navbar -->
+  <div class="navbar bg-base-100 shadow-sm sticky top-0 z-50">
+    <div class="flex-1">
+      <a href="/admin/dashboard.html" class="flex items-center gap-2 px-4">
+        <div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-primary-content" viewBox="0 0 24 24" fill="currentColor"><path d="M2 21v-2h2V7a1 1 0 011-1h14a1 1 0 011 1v2h2a2 2 0 010 4h-2v5h2v2H2zm16-4V8H6v9h12zm2-3h2V9h-2v5z"/></svg>
+        </div>
+        <span class="font-semibold text-base-content text-lg" style="font-family:'Playfair Display',serif">Coffee E-Menu</span>
+      </a>
+    </div>
+    <div class="flex-none px-4">
+      <button id="logout-btn" @click="logout()" class="btn btn-ghost btn-sm">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+        Logout
+      </button>
+    </div>
+  </div>
+
+  <div class="flex min-h-[calc(100vh-4rem)]">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-base-100 shadow-sm hidden md:flex flex-col py-6 px-4 gap-1">
+      <a href="/admin/dashboard.html" class="btn btn-ghost btn-sm justify-start gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>Dashboard
+      </a>
+      <a href="/admin/menu.html" class="btn btn-ghost btn-sm justify-start gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M8.1 13.34l2.83-2.83L3.91 3.5C2.35 5.06 2.35 7.56 3.91 9.12l4.19 4.22zm6.78-1.81c1.53.71 3.68.21 5.27-1.38 1.91-1.91 2.28-4.65.81-6.12-1.46-1.46-4.2-1.1-6.12.81-1.59 1.59-2.09 3.74-1.38 5.27L3 19.69l1.41 1.41L9 16.5l4.59 4.59 1.41-1.41-4.6-4.59 2.48-2.56z"/></svg>Menu
+      </a>
+      <a href="/admin/sessions.html" class="btn btn-ghost btn-sm justify-start gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg>Sessions
+      </a>
+      <a href="/admin/orders.html" class="btn btn-primary btn-sm justify-start gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>Orders
+      </a>
+    </aside>
+
+    <main class="flex-1 p-6">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h1 class="text-3xl text-base-content">Orders</h1>
+          <p class="text-base-content/50 text-sm mt-1">View all orders by session</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <div x-show="selectedSessionId" x-cloak class="flex items-center gap-2">
+            <div class="badge badge-success badge-sm" x-show="autoRefresh">● Live</div>
+            <button @click="exportCsv()" class="btn btn-outline btn-sm gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+              Export CSV
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Session Picker -->
+      <div class="card bg-base-100 shadow mb-6">
+        <div class="card-body py-4">
+          <div class="flex flex-wrap items-center gap-3">
+            <label class="font-medium text-sm">Select Session:</label>
+            <select id="session-select" x-model="selectedSessionId" @change="loadOrders()" class="select select-bordered select-sm flex-1 max-w-xs">
+              <option value="">— Choose a session —</option>
+              <template x-for="s in sessions" :key="s.id">
+                <option :value="s.id" x-text="s.title + ' (' + (s.status === 'open' ? '🟢 Open' : '⛔ Closed') + ' · ' + s.order_count + ' orders)'"></option>
+              </template>
+            </select>
+            <div x-show="currentSession" x-cloak class="flex items-center gap-2">
+              <span class="badge" :class="currentSession?.status === 'open' ? 'badge-success' : 'badge-ghost'"
+                x-text="currentSession?.status === 'open' ? 'Open' : 'Closed'"></span>
+              <span class="text-sm text-base-content/50" x-text="'Deadline: ' + (currentSession ? formatDeadline(currentSession.deadline) : '')"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats Cards -->
+      <div x-show="selectedSessionId && orders.length > 0" x-cloak class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="stat bg-base-100 rounded-xl shadow py-4">
+          <div class="stat-title text-xs">Total Orders</div>
+          <div class="stat-value text-2xl text-primary" x-text="orders.length"></div>
+        </div>
+        <div class="stat bg-base-100 rounded-xl shadow py-4">
+          <div class="stat-title text-xs">Total Revenue</div>
+          <div class="stat-value text-2xl text-success" x-text="'៛ ' + totalRevenue.toLocaleString('km-KH')"></div>
+        </div>
+        <div class="stat bg-base-100 rounded-xl shadow py-4">
+          <div class="stat-title text-xs">Total Items</div>
+          <div class="stat-value text-2xl text-warning" x-text="totalItemCount"></div>
+        </div>
+        <div class="stat bg-base-100 rounded-xl shadow py-4">
+          <div class="stat-title text-xs">Top Item</div>
+          <div class="stat-value text-sm text-base-content leading-tight mt-1" x-text="topItem"></div>
+        </div>
+      </div>
+
+      <!-- No session selected -->
+      <div x-show="!selectedSessionId" class="text-center py-16 text-base-content/40">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-16 h-16 mx-auto mb-4 opacity-30" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+        <p>Select a session to view orders</p>
+      </div>
+
+      <!-- Empty state -->
+      <div x-show="selectedSessionId && orders.length === 0" x-cloak class="text-center py-16 text-base-content/40">
+        <p>No orders yet for this session.</p>
+        <p class="text-sm mt-2">Share the ordering link and wait for orders to come in.</p>
+      </div>
+
+      <!-- Orders List -->
+      <div x-show="orders.length > 0" x-cloak class="space-y-3">
+        <template x-for="(order, idx) in orders" :key="order.id">
+          <div class="card bg-base-100 shadow">
+            <div class="card-body py-4">
+              <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                  <div class="avatar placeholder">
+                    <div class="bg-primary text-primary-content rounded-full w-9 h-9 text-sm font-bold">
+                      <span x-text="order.customer_name.charAt(0).toUpperCase()"></span>
+                    </div>
+                  </div>
+                  <div>
+                    <p class="font-semibold text-base-content" x-text="order.customer_name"></p>
+                    <p class="text-xs text-base-content/50" x-text="formatDate(order.created_at)"></p>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <p class="font-bold text-primary" x-text="'៛ ' + Number(order.total).toLocaleString('km-KH')"></p>
+                  <p class="text-xs text-base-content/50" x-text="order.items.length + ' item(s)'"></p>
+                </div>
+              </div>
+
+              <!-- Items -->
+              <div class="mt-3 space-y-1">
+                <template x-for="item in order.items" :key="item.menu_item_id + '-' + item.item_name">
+                  <div class="flex items-center justify-between text-sm bg-base-200 rounded-lg px-3 py-2">
+                    <div class="flex items-center gap-2">
+                      <span class="badge badge-primary badge-xs" x-text="'x' + item.quantity"></span>
+                      <span x-text="item.item_name"></span>
+                    </div>
+                    <span class="text-base-content/60" x-text="'៛ ' + Number(item.subtotal).toLocaleString('km-KH')"></span>
+                  </div>
+                </template>
+              </div>
+
+              <!-- Notes -->
+              <div x-show="order.notes" x-cloak class="mt-2 bg-warning/10 rounded-lg px-3 py-2 text-sm">
+                <span class="font-medium text-warning-content/70">📝 Note: </span>
+                <span class="text-base-content/70" x-text="order.notes"></span>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
+    </main>
+  </div>
+
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js"></script>
+  <script>
+    function ordersApp() {
+      return {
+        sessions: [],
+        orders: [],
+        selectedSessionId: '',
+        autoRefresh: false,
+        refreshTimer: null,
+
+        get currentSession() {
+          return this.sessions.find(s => s.id == this.selectedSessionId) || null;
+        },
+        get totalRevenue() {
+          return this.orders.reduce((sum, o) => sum + Number(o.total), 0);
+        },
+        get totalItemCount() {
+          return this.orders.reduce((sum, o) => sum + o.items.reduce((s, i) => s + i.quantity, 0), 0);
+        },
+        get topItem() {
+          const counts = {};
+          this.orders.forEach(o => o.items.forEach(i => {
+            counts[i.item_name] = (counts[i.item_name] || 0) + i.quantity;
+          }));
+          const sorted = Object.entries(counts).sort((a,b) => b[1] - a[1]);
+          return sorted.length ? `${sorted[0][0]} (${sorted[0][1]})` : '—';
+        },
+
+        async init() {
+          const auth = await fetch('/api/auth/me').then(r => r.json());
+          if (!auth.loggedIn) { window.location.href = '/admin/login.html'; return; }
+          this.sessions = await fetch('/api/sessions').then(r => r.json());
+          // Pre-select from URL param
+          const urlParams = new URLSearchParams(window.location.search);
+          const sid = urlParams.get('session');
+          if (sid) { this.selectedSessionId = sid; await this.loadOrders(); }
+        },
+        async loadOrders() {
+          if (!this.selectedSessionId) return;
+          this.orders = await fetch(`/api/orders?session_id=${this.selectedSessionId}`).then(r => r.json());
+          // Start auto-refresh if session is open
+          clearInterval(this.refreshTimer);
+          if (this.currentSession?.status === 'open') {
+            this.autoRefresh = true;
+            this.refreshTimer = setInterval(() => this.loadOrders(), 10000);
+          } else {
+            this.autoRefresh = false;
+          }
+        },
+        exportCsv() {
+          window.open(`/api/orders/export?session_id=${this.selectedSessionId}`, '_blank');
+        },
+        formatDate(dt) {
+          // SQLite datetime('now') is UTC with no 'Z' marker — append it so JS parses correctly
+          const utc = new Date(dt.replace(' ', 'T') + 'Z');
+          return utc.toLocaleString('km-KH', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Phnom_Penh' });
+        },
+        formatDeadline(dt) {
+          // Deadline comes from datetime-local input — already local time (GMT+7), parse as-is
+          return new Date(dt).toLocaleString('km-KH', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Phnom_Penh' });
+        },
+        async logout() {
+          clearInterval(this.refreshTimer);
+          await fetch('/api/auth/logout', { method: 'POST' });
+          window.location.href = '/admin/login.html';
+        }
+      }
+    }
+  </script>
+</body>
+</html>

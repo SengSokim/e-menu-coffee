@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="coffee">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Login — Coffee E-Menu</title>
+  <meta name="description" content="Login to the Coffee E-Menu admin panel to manage your menu and ordering sessions." />
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    h1, h2, h3 { font-family: 'Playfair Display', serif; }
+    .bg-pattern {
+      background-image: radial-gradient(circle at 20% 50%, rgba(201,129,58,0.15) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(201,129,58,0.1) 0%, transparent 40%);
+    }
+  </style>
+</head>
+<body class="bg-base-200 bg-pattern min-h-screen flex items-center justify-center">
+  <div x-data="loginApp()" class="w-full max-w-sm px-4">
+    <!-- Logo -->
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary mb-4 shadow-lg">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-primary-content" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M2 21v-2h2V7a1 1 0 011-1h14a1 1 0 011 1v2h2a2 2 0 010 4h-2v5h2v2H2zm16-4V8H6v9h12zm2-3h2V9h-2v5z"/>
+        </svg>
+      </div>
+      <h1 class="text-3xl text-base-content">Coffee E-Menu</h1>
+      <p class="text-base-content/50 text-sm mt-1">Admin Panel</p>
+    </div>
+
+    <!-- Card -->
+    <div class="card bg-base-100 shadow-2xl">
+      <div class="card-body gap-4">
+        <h2 class="text-xl text-center text-base-content">Welcome back</h2>
+
+        <div x-show="error" x-cloak class="alert alert-error text-sm py-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+          <span x-text="error"></span>
+        </div>
+
+        <form @submit.prevent="login" class="flex flex-col gap-3">
+          <div class="form-control">
+            <label class="label pb-1"><span class="label-text font-medium">Username</span></label>
+            <input id="username" type="text" x-model="username" placeholder="admin"
+              class="input input-bordered w-full focus:input-primary" autocomplete="username" required />
+          </div>
+          <div class="form-control">
+            <label class="label pb-1"><span class="label-text font-medium">Password</span></label>
+            <div class="relative">
+              <input id="password" :type="showPw ? 'text' : 'password'" x-model="password"
+                placeholder="••••••••" class="input input-bordered w-full focus:input-primary pr-10"
+                autocomplete="current-password" required />
+              <button type="button" @click="showPw = !showPw"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/40 hover:text-base-content transition-colors">
+                <svg x-show="!showPw" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                <svg x-show="showPw" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <button id="login-btn" type="submit" class="btn btn-primary mt-2" :class="{ 'loading': loading }" :disabled="loading">
+            <span x-show="!loading">Sign In</span>
+            <span x-show="loading">Signing in...</span>
+          </button>
+        </form>
+      </div>
+    </div>
+    <p class="text-center text-xs text-base-content/30 mt-6">Coffee E-Menu &copy; 2025</p>
+  </div>
+
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js"></script>
+  <script>
+    function loginApp() {
+      return {
+        username: '',
+        password: '',
+        showPw: false,
+        loading: false,
+        error: '',
+        async login() {
+          this.loading = true;
+          this.error = '';
+          try {
+            const res = await fetch('/api/auth/login', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ username: this.username, password: this.password })
+            });
+            const data = await res.json();
+            if (!res.ok) { this.error = data.error; return; }
+            window.location.href = '/admin/dashboard.html';
+          } catch (e) {
+            this.error = 'Connection error. Please try again.';
+          } finally {
+            this.loading = false;
+          }
+        }
+      }
+    }
+  </script>
+</body>
+</html>

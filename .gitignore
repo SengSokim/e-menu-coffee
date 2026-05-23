@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Environment secrets — NEVER commit this
+.env
+
+# SQLite database files
+database/coffee.db
+database/coffee.db-wal
+database/coffee.db-shm
+
+# Uploaded files
+uploads/images/
+uploads/csv/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test files
+test-api.js
+
+# OS files
+.DS_Store
+Thumbs.db

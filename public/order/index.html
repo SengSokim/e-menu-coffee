@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="coffee">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Order Coffee — Coffee E-Menu</title>
+  <meta name="description" content="Place your coffee order for this session." />
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    h1,h2,h3 { font-family: 'Playfair Display', serif; }
+    [x-cloak] { display: none !important; }
+    .item-card { transition: transform 0.15s ease, box-shadow 0.15s ease; }
+    .item-card:hover { transform: translateY(-2px); }
+    .qty-btn { transition: background 0.1s; }
+  </style>
+</head>
+<body class="bg-base-200 min-h-screen" x-data="orderApp()" x-init="init()">
+
+  <!-- Loading -->
+  <div x-show="loading" class="fixed inset-0 bg-base-300 flex items-center justify-center z-50">
+    <div class="text-center">
+      <span class="loading loading-spinner loading-lg text-primary"></span>
+      <p class="mt-3 text-base-content/50">Loading menu...</p>
+    </div>
+  </div>
+
+  <!-- Session Closed / Not Found -->
+  <div x-show="!loading && (sessionClosed || sessionNotFound)" x-cloak
+    class="min-h-screen flex items-center justify-center px-4">
+    <div class="card bg-base-100 shadow-xl max-w-sm w-full text-center">
+      <div class="card-body py-12">
+        <div class="text-6xl mb-4" x-text="sessionNotFound ? '🔍' : '⛔'"></div>
+        <h2 class="text-2xl" x-text="sessionNotFound ? 'Session Not Found' : 'Session Closed'"></h2>
+        <p class="text-base-content/50 mt-2" x-text="sessionNotFound ? 'This ordering link is invalid or has been removed.' : 'Ordering for this session has ended. Thank you!'"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Order Success -->
+  <div x-show="!loading && orderSuccess" x-cloak
+    class="min-h-screen flex items-center justify-center px-4">
+    <div class="card bg-base-100 shadow-xl max-w-sm w-full text-center">
+      <div class="card-body py-12">
+        <div class="text-6xl mb-4">☕</div>
+        <h2 class="text-2xl text-success">Order Placed!</h2>
+        <p class="text-base-content/60 mt-3">Your order has been submitted successfully. Hang tight, your coffee is coming!</p>
+        <div class="mt-6 bg-base-200 rounded-xl p-4 text-left">
+          <p class="text-sm font-semibold text-base-content mb-2">Your order:</p>
+          <template x-for="item in (savedOrder ? savedOrder.items : cartItems)" :key="item.id">
+            <div class="flex justify-between text-sm py-1">
+              <span x-text="item.name + ' x' + item.qty"></span>
+              <span class="text-primary font-medium" x-text="'៛ ' + (item.price * item.qty).toLocaleString('km-KH')"></span>
+            </div>
+          </template>
+          <div class="divider my-2"></div>
+          <div class="flex justify-between font-bold">
+            <span>Total</span>
+            <span class="text-primary" x-text="'៛ ' + (savedOrder ? savedOrder.total : cartTotal).toLocaleString('km-KH')"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Ordering Page -->
+  <div x-show="!loading && !sessionClosed && !sessionNotFound && !orderSuccess" x-cloak>
+    <!-- Header -->
+    <div class="bg-base-100 shadow-sm py-4 px-4 sm:px-6 sticky top-0 z-40">
+      <div class="max-w-2xl mx-auto flex items-center justify-between">
+        <div>
+          <h1 class="text-xl sm:text-2xl leading-tight" x-text="session.title"></h1>
+          <div class="flex items-center gap-2 mt-1">
+            <span class="badge badge-success badge-xs">Open</span>
+            <span class="text-xs text-base-content/50">Closes in: <span class="font-semibold text-warning" x-text="countdown"></span></span>
+          </div>
+        </div>
+        <!-- Cart indicator -->
+        <div class="indicator cursor-pointer" @click="scrollToCart()">
+          <span class="indicator-item badge badge-primary badge-sm" x-show="cartCount > 0" x-text="cartCount"></span>
+          <button class="btn btn-ghost btn-sm gap-1">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96C5 16.1 6.9 18 9 18h12v-2H9.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63H19c.75 0 1.41-.41 1.75-1.03l3.58-6.49A1 1 0 0023.46 5H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/></svg>
+            <span class="hidden sm:inline text-sm" x-show="cartCount > 0" x-text="'៛ ' + cartTotal.toLocaleString('km-KH')"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="max-w-2xl mx-auto px-4 py-6">
+
+      <!-- Customer Name -->
+      <div x-show="!customerName" class="card bg-base-100 shadow mb-6">
+        <div class="card-body">
+          <h2 class="text-lg mb-3">What's your name?</h2>
+          <div class="flex gap-2">
+            <input id="customer-name-input" type="text" x-model="nameInput" placeholder="Enter your name..."
+              class="input input-bordered flex-1" @keyup.enter="setName()" />
+            <button id="set-name-btn" @click="setName()" class="btn btn-primary" :disabled="!nameInput.trim()">Continue</button>
+          </div>
+        </div>
+      </div>
+
+      <div x-show="customerName" x-cloak>
+        <!-- Name badge -->
+        <div class="flex items-center gap-2 mb-4">
+          <div class="avatar placeholder">
+            <div class="bg-primary text-primary-content rounded-full w-8 h-8 text-sm font-bold">
+              <span x-text="customerName.charAt(0).toUpperCase()"></span>
+            </div>
+          </div>
+          <span class="text-sm text-base-content/70">Ordering as <strong x-text="customerName"></strong></span>
+          <button @click="customerName = ''" class="btn btn-ghost btn-xs">Change</button>
+        </div>
+
+        <!-- Category Tabs -->
+        <div class="flex gap-2 flex-wrap mb-4">
+          <button @click="activeCategory = 'All'" class="btn btn-sm"
+            :class="activeCategory === 'All' ? 'btn-primary' : 'btn-ghost'">All</button>
+          <template x-for="cat in categories" :key="cat">
+            <button @click="activeCategory = cat" class="btn btn-sm"
+              :class="activeCategory === cat ? 'btn-primary' : 'btn-ghost'" x-text="cat"></button>
+          </template>
+        </div>
+
+        <!-- Menu Items -->
+        <div class="space-y-3 mb-6">
+          <template x-for="item in filteredMenu" :key="item.id">
+            <div class="card bg-base-100 shadow item-card">
+              <div class="card-body p-4">
+                <div class="flex gap-3">
+                  <!-- Image -->
+                  <div x-show="item.image_url" class="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0">
+                    <img :src="item.image_url" :alt="item.name" class="w-full h-full object-cover" />
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-start justify-between gap-2">
+                      <div>
+                        <h3 class="font-semibold text-base-content leading-tight" x-text="item.name"></h3>
+                        <span class="badge badge-ghost badge-xs mt-0.5" x-text="item.category"></span>
+                        <p class="text-xs text-base-content/50 mt-1 line-clamp-2" x-text="item.description"></p>
+                      </div>
+                    </div>
+                    <div class="flex items-center justify-between mt-3">
+                      <span class="font-bold text-primary" x-text="'៛ ' + item.price.toLocaleString('km-KH')"></span>
+                      <!-- Qty Controls -->
+                      <div class="flex items-center gap-2">
+                        <div x-show="getQty(item.id) > 0" x-cloak class="flex items-center gap-1">
+                          <button @click="decreaseQty(item)" class="btn btn-circle btn-xs btn-outline qty-btn">−</button>
+                          <span class="w-6 text-center font-semibold text-sm" x-text="getQty(item.id)"></span>
+                        </div>
+                        <button @click="increaseQty(item)" class="btn btn-circle btn-xs btn-primary qty-btn">+</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <!-- Cart / Order Summary -->
+        <div id="cart-section" x-show="cartCount > 0" x-cloak class="card bg-base-100 shadow-xl sticky bottom-4">
+          <div class="card-body p-4">
+            <h2 class="text-lg mb-3">Your Order</h2>
+            <div class="space-y-2 mb-3">
+              <template x-for="item in cartItems" :key="item.id">
+                <div class="flex items-center justify-between text-sm">
+                  <div class="flex items-center gap-2">
+                    <span class="badge badge-primary badge-xs" x-text="'x' + item.qty"></span>
+                    <span x-text="item.name"></span>
+                  </div>
+                  <span class="font-medium text-primary" x-text="'៛ ' + (item.price * item.qty).toLocaleString('km-KH')"></span>
+                </div>
+              </template>
+            </div>
+            <div class="divider my-2"></div>
+            <div class="flex justify-between font-bold mb-3">
+              <span>Total</span>
+              <span class="text-primary" x-text="'៛ ' + cartTotal.toLocaleString('km-KH')"></span>
+            </div>
+            <!-- Notes -->
+            <div class="form-control mb-3">
+              <textarea id="order-notes" x-model="orderNotes" class="textarea textarea-bordered text-sm" rows="2"
+                placeholder="Any special requests? (e.g. less sugar, extra shot...)"></textarea>
+            </div>
+            <button id="place-order-btn" @click="placeOrder()" class="btn btn-primary w-full gap-2"
+              :class="{ 'loading': submitting }" :disabled="submitting">
+              <svg x-show="!submitting" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+              <span x-show="!submitting">Place Order</span>
+              <span x-show="submitting">Placing order...</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js"></script>
+  <script>
+    function orderApp() {
+      return {
+        loading: true,
+        session: null,
+        sessionClosed: false,
+        sessionNotFound: false,
+        orderSuccess: false,
+        savedOrder: null,
+        menu: [],
+        cart: {},         // { itemId: qty }
+        customerName: '',
+        nameInput: '',
+        orderNotes: '',
+        submitting: false,
+        activeCategory: 'All',
+        countdown: '',
+
+        get categories() {
+          return [...new Set(this.menu.map(i => i.category))].filter(Boolean).sort();
+        },
+        get filteredMenu() {
+          if (this.activeCategory === 'All') return this.menu;
+          return this.menu.filter(i => i.category === this.activeCategory);
+        },
+        get cartItems() {
+          return Object.entries(this.cart)
+            .filter(([,qty]) => qty > 0)
+            .map(([id, qty]) => {
+              const item = this.menu.find(m => m.id == id);
+              return { id: Number(id), name: item.name, price: item.price, qty };
+            });
+        },
+        get cartCount() {
+          return Object.values(this.cart).reduce((s, q) => s + q, 0);
+        },
+        get cartTotal() {
+          return this.cartItems.reduce((s, i) => s + i.price * i.qty, 0);
+        },
+
+        async init() {
+          const params = new URLSearchParams(window.location.search);
+          const token = params.get('token');
+          if (!token) { this.sessionNotFound = true; this.loading = false; return; }
+
+          // Check if already ordered
+          const ordered = localStorage.getItem(`ordered_${token}`);
+          if (ordered) {
+            const saved = localStorage.getItem(`order_summary_${token}`);
+            if (saved) this.savedOrder = JSON.parse(saved);
+            this.orderSuccess = true;
+            this.loading = false;
+            return;
+          }
+
+          const [sessionRes, menuRes] = await Promise.all([
+            fetch(`/api/sessions/${token}`),
+            fetch('/api/menu')
+          ]);
+
+          if (!sessionRes.ok) { this.sessionNotFound = true; this.loading = false; return; }
+
+          this.session = await sessionRes.json();
+          if (this.session.status !== 'open') { this.sessionClosed = true; this.loading = false; return; }
+
+          const allMenu = await menuRes.json();
+          this.menu = allMenu.filter(m => m.is_available);
+          this.loading = false;
+          this.startCountdown();
+        },
+
+        setName() {
+          if (this.nameInput.trim()) this.customerName = this.nameInput.trim();
+        },
+        getQty(itemId) { return this.cart[itemId] || 0; },
+        increaseQty(item) { this.cart[item.id] = (this.cart[item.id] || 0) + 1; },
+        decreaseQty(item) {
+          if (this.cart[item.id] > 1) this.cart[item.id]--;
+          else delete this.cart[item.id];
+        },
+        scrollToCart() {
+          document.getElementById('cart-section')?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        },
+
+        async placeOrder() {
+          if (!this.customerName || this.cartCount === 0) return;
+          this.submitting = true;
+
+          const items = this.cartItems.map(i => ({ menu_item_id: i.id, quantity: i.qty }));
+          const token = new URLSearchParams(window.location.search).get('token');
+
+          const res = await fetch('/api/orders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              session_token: token,
+              customer_name: this.customerName,
+              notes: this.orderNotes,
+              items
+            })
+          });
+
+          this.submitting = false;
+          if (res.ok) {
+            // Save summary so the success page works correctly even after a page refresh
+            const summary = { items: this.cartItems, total: this.cartTotal };
+            localStorage.setItem(`order_summary_${token}`, JSON.stringify(summary));
+            localStorage.setItem(`ordered_${token}`, '1');
+            this.savedOrder = summary;
+            this.orderSuccess = true;
+          } else {
+            const data = await res.json();
+            alert(data.error || 'Failed to place order. Please try again.');
+          }
+        },
+
+        startCountdown() {
+          const update = () => {
+            const diff = new Date(this.session.deadline) - new Date();
+            if (diff <= 0) {
+              this.countdown = 'Closed';
+              this.sessionClosed = true;
+              return;
+            }
+            const h = Math.floor(diff / 3600000);
+            const m = Math.floor((diff % 3600000) / 60000);
+            const s = Math.floor((diff % 60000) / 1000);
+            this.countdown = h > 0 ? `${h}h ${m}m` : m > 0 ? `${m}m ${s}s` : `${s}s`;
+          };
+          update();
+          setInterval(update, 1000);
+        }
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="coffee">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Menu Management — Coffee E-Menu Admin</title>
+  <meta name="description" content="Manage your coffee menu items — add, edit, delete, and bulk import via CSV." />
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    h1,h2,h3 { font-family: 'Playfair Display', serif; }
+    [x-cloak] { display: none !important; }
+  </style>
+</head>
+<body class="bg-base-200 min-h-screen" x-data="menuApp()" x-init="init()">
+
+  <!-- Navbar -->
+  <div class="navbar bg-base-100 shadow-sm sticky top-0 z-50">
+    <div class="flex-1">
+      <a href="/admin/dashboard.html" class="flex items-center gap-2 px-4">
+        <div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-primary-content" viewBox="0 0 24 24" fill="currentColor"><path d="M2 21v-2h2V7a1 1 0 011-1h14a1 1 0 011 1v2h2a2 2 0 010 4h-2v5h2v2H2zm16-4V8H6v9h12zm2-3h2V9h-2v5z"/></svg>
+        </div>
+        <span class="font-semibold text-base-content text-lg" style="font-family:'Playfair Display',serif">Coffee E-Menu</span>
+      </a>
+    </div>
+    <div class="flex-none gap-2 px-4">
+      <button id="logout-btn" @click="logout()" class="btn btn-ghost btn-sm">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+        Logout
+      </button>
+    </div>
+  </div>
+
+  <div class="flex min-h-[calc(100vh-4rem)]">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-base-100 shadow-sm hidden md:flex flex-col py-6 px-4 gap-1">
+      <a href="/admin/dashboard.html" class="btn btn-ghost btn-sm justify-start gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+        Dashboard
+      </a>
+      <a href="/admin/menu.html" class="btn btn-primary btn-sm justify-start gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M8.1 13.34l2.83-2.83L3.91 3.5C2.35 5.06 2.35 7.56 3.91 9.12l4.19 4.22zm6.78-1.81c1.53.71 3.68.21 5.27-1.38 1.91-1.91 2.28-4.65.81-6.12-1.46-1.46-4.2-1.1-6.12.81-1.59 1.59-2.09 3.74-1.38 5.27L3 19.69l1.41 1.41L9 16.5l4.59 4.59 1.41-1.41-4.6-4.59 2.48-2.56z"/></svg>
+        Menu
+      </a>
+      <a href="/admin/sessions.html" class="btn btn-ghost btn-sm justify-start gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg>
+        Sessions
+      </a>
+      <a href="/admin/orders.html" class="btn btn-ghost btn-sm justify-start gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+        Orders
+      </a>
+    </aside>
+
+    <!-- Main -->
+    <main class="flex-1 p-6">
+      <div class="flex items-center justify-between mb-8">
+        <div>
+          <h1 class="text-3xl text-base-content">Menu Management</h1>
+          <p class="text-base-content/50 text-sm mt-1">Add, edit and manage your coffee menu items</p>
+        </div>
+        <div class="flex gap-2">
+          <button id="csv-upload-btn" @click="showCsvModal = true" class="btn btn-outline btn-sm gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/></svg>
+            Import CSV
+          </button>
+          <button id="add-item-btn" @click="openAddModal()" class="btn btn-primary btn-sm gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+            Add Item
+          </button>
+        </div>
+      </div>
+
+      <!-- Toast -->
+      <div x-show="toast.show" x-cloak x-transition
+        class="toast toast-top toast-end z-50">
+        <div class="alert" :class="toast.type === 'success' ? 'alert-success' : 'alert-error'">
+          <span x-text="toast.message"></span>
+        </div>
+      </div>
+
+      <!-- Filter/Search -->
+      <div class="flex flex-wrap gap-3 mb-4">
+        <input id="search-menu" type="text" x-model="search" placeholder="Search items..." class="input input-bordered input-sm w-48" />
+        <select id="filter-category" x-model="filterCategory" class="select select-bordered select-sm">
+          <option value="">All Categories</option>
+          <template x-for="cat in categories" :key="cat">
+            <option :value="cat" x-text="cat"></option>
+          </template>
+        </select>
+        <span class="text-sm text-base-content/50 self-center" x-text="filteredItems.length + ' items'"></span>
+      </div>
+
+      <!-- Menu Grid -->
+      <div x-show="filteredItems.length === 0" class="text-center py-16 text-base-content/40">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-16 h-16 mx-auto mb-4 opacity-30" viewBox="0 0 24 24" fill="currentColor"><path d="M8.1 13.34l2.83-2.83L3.91 3.5C2.35 5.06 2.35 7.56 3.91 9.12l4.19 4.22zm6.78-1.81c1.53.71 3.68.21 5.27-1.38 1.91-1.91 2.28-4.65.81-6.12-1.46-1.46-4.2-1.1-6.12.81-1.59 1.59-2.09 3.74-1.38 5.27L3 19.69l1.41 1.41L9 16.5l4.59 4.59 1.41-1.41-4.6-4.59 2.48-2.56z"/></svg>
+        <p>No menu items yet. Add your first item!</p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <template x-for="item in filteredItems" :key="item.id">
+          <div class="card bg-base-100 shadow hover:shadow-md transition-shadow">
+            <figure class="h-36 bg-base-200 overflow-hidden rounded-t-2xl">
+              <img x-show="item.image_url" :src="item.image_url" :alt="item.name" class="w-full h-full object-cover" />
+              <div x-show="!item.image_url" class="w-full h-full flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 text-base-content/20" viewBox="0 0 24 24" fill="currentColor"><path d="M2 21v-2h2V7a1 1 0 011-1h14a1 1 0 011 1v2h2a2 2 0 010 4h-2v5h2v2H2zm16-4V8H6v9h12zm2-3h2V9h-2v5z"/></svg>
+              </div>
+            </figure>
+            <div class="card-body p-4">
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <h3 class="font-semibold text-base-content text-sm leading-tight" x-text="item.name"></h3>
+                  <span class="badge badge-xs badge-ghost mt-1" x-text="item.category"></span>
+                </div>
+                <span class="badge" :class="item.is_available ? 'badge-success' : 'badge-ghost'" x-text="item.is_available ? 'Active' : 'Hidden'"></span>
+              </div>
+              <p class="text-xs text-base-content/50 mt-1 line-clamp-2" x-text="item.description"></p>
+              <p class="font-bold text-primary mt-2" x-text="'&#x17DB; ' + item.price.toLocaleString('km-KH')"></p>
+              <div class="card-actions mt-3 flex gap-1">
+                <button @click="toggleAvailability(item)" class="btn btn-xs btn-ghost flex-1"
+                  x-text="item.is_available ? 'Hide' : 'Show'"></button>
+                <button @click="openEditModal(item)" class="btn btn-xs btn-outline flex-1">Edit</button>
+                <button @click="deleteItem(item)" class="btn btn-xs btn-error btn-outline">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
+    </main>
+  </div>
+
+  <!-- Add/Edit Item Modal -->
+  <dialog id="item-modal" class="modal" :class="{ 'modal-open': showItemModal }">
+    <div class="modal-box w-11/12 max-w-lg">
+      <h3 class="text-xl mb-6" x-text="editingItem ? 'Edit Item' : 'Add Menu Item'"></h3>
+      <form @submit.prevent="saveItem" class="flex flex-col gap-4" enctype="multipart/form-data">
+        <div class="form-control">
+          <label class="label pb-1"><span class="label-text font-medium">Name *</span></label>
+          <input id="item-name" type="text" x-model="form.name" class="input input-bordered" required placeholder="e.g. Iced Latte" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div class="form-control">
+            <label class="label pb-1"><span class="label-text font-medium">Price (៛) *</span></label>
+            <input id="item-price" type="number" x-model="form.price" class="input input-bordered" required min="0" placeholder="35000" />
+          </div>
+          <div class="form-control">
+            <label class="label pb-1"><span class="label-text font-medium">Category</span></label>
+            <input id="item-category" type="text" x-model="form.category" class="input input-bordered" placeholder="Hot Coffee" list="category-list" />
+            <datalist id="category-list">
+              <template x-for="cat in categories" :key="cat"><option :value="cat"></option></template>
+            </datalist>
+          </div>
+        </div>
+        <div class="form-control">
+          <label class="label pb-1"><span class="label-text font-medium">Description</span></label>
+          <textarea id="item-desc" x-model="form.description" class="textarea textarea-bordered" rows="2" placeholder="Short description..."></textarea>
+        </div>
+        <div class="form-control">
+          <label class="label pb-1"><span class="label-text font-medium">Image (optional)</span></label>
+          <input id="item-image" type="file" accept="image/*" @change="form.imageFile = $event.target.files[0]" class="file-input file-input-bordered file-input-sm w-full" />
+        </div>
+        <div class="modal-action mt-2">
+          <button type="button" @click="showItemModal = false" class="btn btn-ghost">Cancel</button>
+          <button type="submit" id="save-item-btn" class="btn btn-primary" :class="{ 'loading': saving }" :disabled="saving">
+            <span x-show="!saving" x-text="editingItem ? 'Save Changes' : 'Add Item'"></span>
+            <span x-show="saving">Saving...</span>
+          </button>
+        </div>
+      </form>
+    </div>
+    <div class="modal-backdrop" @click="showItemModal = false"></div>
+  </dialog>
+
+  <!-- CSV Upload Modal -->
+  <dialog id="csv-modal" class="modal" :class="{ 'modal-open': showCsvModal }">
+    <div class="modal-box max-w-md">
+      <h3 class="text-xl mb-2">Import Menu from CSV</h3>
+      <p class="text-sm text-base-content/60 mb-4">Upload a CSV file with columns: <code class="bg-base-200 px-1 rounded">name, description, price, category</code></p>
+      <div class="mockup-code text-xs mb-4">
+        <pre><code>name,description,price,category
+Iced Latte,Espresso cold milk,35000,Cold Coffee
+Americano,Black espresso,28000,Hot Coffee</code></pre>
+      </div>
+      <form @submit.prevent="uploadCsv">
+        <input id="csv-file" type="file" accept=".csv" @change="csvFile = $event.target.files[0]" class="file-input file-input-bordered w-full mb-4" required />
+        <div x-show="csvResult" x-cloak class="alert mb-4" :class="csvResult.ok ? 'alert-success' : 'alert-error'">
+          <span x-text="csvResult.message"></span>
+        </div>
+        <div class="modal-action">
+          <button type="button" @click="showCsvModal = false; csvResult = null" class="btn btn-ghost">Close</button>
+          <button id="import-csv-btn" type="submit" class="btn btn-primary" :class="{ 'loading': csvUploading }" :disabled="csvUploading">
+            <span x-show="!csvUploading">Import</span>
+            <span x-show="csvUploading">Importing...</span>
+          </button>
+        </div>
+      </form>
+    </div>
+    <div class="modal-backdrop" @click="showCsvModal = false"></div>
+  </dialog>
+
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js"></script>
+  <script>
+    function menuApp() {
+      return {
+        items: [],
+        search: '',
+        filterCategory: '',
+        showItemModal: false,
+        showCsvModal: false,
+        editingItem: null,
+        saving: false,
+        csvFile: null,
+        csvUploading: false,
+        csvResult: null,
+        form: { name: '', price: '', category: '', description: '', imageFile: null },
+        toast: { show: false, message: '', type: 'success' },
+
+        get categories() {
+          return [...new Set(this.items.map(i => i.category))].filter(Boolean).sort();
+        },
+        get filteredItems() {
+          return this.items.filter(i => {
+            const matchSearch = !this.search || i.name.toLowerCase().includes(this.search.toLowerCase());
+            const matchCat = !this.filterCategory || i.category === this.filterCategory;
+            return matchSearch && matchCat;
+          });
+        },
+        async init() {
+          const auth = await fetch('/api/auth/me').then(r => r.json());
+          if (!auth.loggedIn) { window.location.href = '/admin/login.html'; return; }
+          await this.loadItems();
+        },
+        async loadItems() {
+          this.items = await fetch('/api/menu').then(r => r.json());
+        },
+        openAddModal() {
+          this.editingItem = null;
+          this.form = { name: '', price: '', category: '', description: '', imageFile: null };
+          this.showItemModal = true;
+        },
+        openEditModal(item) {
+          this.editingItem = item;
+          this.form = { name: item.name, price: item.price, category: item.category, description: item.description || '', imageFile: null };
+          this.showItemModal = true;
+        },
+        async saveItem() {
+          this.saving = true;
+          const fd = new FormData();
+          fd.append('name', this.form.name);
+          fd.append('price', this.form.price);
+          fd.append('category', this.form.category || 'Uncategorized');
+          fd.append('description', this.form.description);
+          if (this.form.imageFile) fd.append('image', this.form.imageFile);
+
+          const url = this.editingItem ? `/api/menu/${this.editingItem.id}` : '/api/menu';
+          const method = this.editingItem ? 'PUT' : 'POST';
+          const res = await fetch(url, { method, body: fd });
+          const data = await res.json();
+          this.saving = false;
+          if (!res.ok) { this.showToast(data.error, 'error'); return; }
+          this.showItemModal = false;
+          this.showToast(this.editingItem ? 'Item updated!' : 'Item added!', 'success');
+          await this.loadItems();
+        },
+        async toggleAvailability(item) {
+          const res = await fetch(`/api/menu/${item.id}/availability`, { method: 'PATCH' });
+          const data = await res.json();
+          if (res.ok) { item.is_available = data.is_available; }
+        },
+        async deleteItem(item) {
+          if (!confirm(`Delete "${item.name}"?`)) return;
+          const res = await fetch(`/api/menu/${item.id}`, { method: 'DELETE' });
+          if (res.ok) { this.showToast('Item deleted.', 'success'); await this.loadItems(); }
+        },
+        async uploadCsv() {
+          if (!this.csvFile) return;
+          this.csvUploading = true;
+          this.csvResult = null;
+          const fd = new FormData();
+          fd.append('csv', this.csvFile);
+          const res = await fetch('/api/menu/upload-csv', { method: 'POST', body: fd });
+          const data = await res.json();
+          this.csvUploading = false;
+          this.csvResult = { ok: res.ok, message: data.message || data.error };
+          if (res.ok) await this.loadItems();
+        },
+        showToast(message, type = 'success') {
+          this.toast = { show: true, message, type };
+          setTimeout(() => this.toast.show = false, 3000);
+        },
+        async logout() {
+          await fetch('/api/auth/logout', { method: 'POST' });
+          window.location.href = '/admin/login.html';
+        }
+      }
+    }
+  </script>
+</body>
+</html>

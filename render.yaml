@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: e-menu-coffee
+    runtime: node
+    plan: free            # change to 'starter' or higher for a persistent disk
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SESSION_SECRET
+        generateValue: true   # Render auto-generates a secure random value
+
+    # --- Persistent Disk (recommended to keep SQLite data across deploys) ---
+    # Uncomment the block below if you upgrade to a paid plan (starter+).
+    # Free tier does NOT support persistent disks.
+    #
+    # disk:
+    #   name: sqlite-data
+    #   mountPath: /var/data
+    #   sizeGB: 1

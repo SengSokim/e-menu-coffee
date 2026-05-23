@@ -1,0 +1,31 @@
+{
+  "name": "e-menu-coffee",
+  "version": "1.0.0",
+  "description": "Coffee ordering app with admin menu management and shareable session links",
+  "main": "server.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "change-password": "node change-password.js"
+  },
+  "keywords": [
+    "coffee",
+    "menu",
+    "ordering"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^12.10.0",
+    "csv-parse": "^6.2.1",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-session": "^1.19.0",
+    "multer": "^2.1.1",
+    "nanoid": "^5.1.11"
+  }
+}
